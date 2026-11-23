@@ -28,7 +28,7 @@
 // The table is fixed, the sort is stable, the winner is always
 // the same word, and the run is deterministic.
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 type Candidate = {
@@ -80,7 +80,13 @@ if (
 
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "entry.txt"), WORD, {
-  encoding: "utf8",
-  flag: "w",
-});
+const outPath = join(outDir, "entry.txt");
+writeFileSync(outPath, WORD, { encoding: "utf8", flag: "w" });
+
+// Read back what was written: the judge only ever sees the file,
+// so a write that silently landed wrong must fail loudly here
+// instead of shipping a zero. The check is byte-exact and the
+// program exits non-zero if the file does not hold the word.
+if (readFileSync(outPath, "utf8") !== WORD) {
+  throw new Error(`entry.txt does not hold the word: ${outPath}`);
+}
